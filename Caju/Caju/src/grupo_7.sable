@@ -1,0 +1,588 @@
+Package caju;
+
+Helpers
+ all = [0 .. 0xffff];
+ letra = [['a' .. 'z'] + ['A' .. 'Z']];
+ digito = ['0' .. '9'];
+ espaco = ' ';
+ rc = 13;
+ nl = 10;
+ eol = rc nl | rc | nl;
+ nao_rc_nl = [all - [rc + nl]];
+ nao_eh_fecha_chave = [all - '}'];
+ nao_eh_aspas_duplas = [all - '"'];
+
+Tokens
+ lex_vazio = 'vazio';
+ ponto = '.';
+ ponto_virgula = ';';
+ dois_pontos = ':';
+ virgula = ',';
+ pipe = '|';
+ atribuicao = ':=';
+ tipo_numero = 'numero';
+ tipo_booleano = 'booleano';
+ tipo_caractere = 'caractere';
+ verdadeiro = 'verdadeiro';
+ falso = 'falso';
+ caractere = ''' all('\' letra)* ''';
+ enquanto = 'enquanto';
+ para = 'para';
+ para_cada = 'para cada';
+ inicio = 'inicio';
+ fim = 'fim';
+ ler = 'ler';
+ exibir = 'exibir';
+ seta = '->';
+ vetor = 'vetor';
+ funcao = 'funcao';
+ mais = '+';
+ menos = '-';
+ vezes = '*';
+ divide = '/';
+ igual = '=';
+ maior = '<';
+ menor = '>';
+ menor_igual = '<=';
+ maior_igual = '>=';
+ nao = 'nao';
+ e = 'e';
+ ou = 'ou';
+ se = 'se';
+ parentese_direito = ')';
+ parentese_esquerdo = '(';
+ colchete_direito = ']';
+ colchete_esquerdo = '[';
+ senao = 'senao';
+ retorne = 'retorne';
+ cadeia = '"' nao_eh_aspas_duplas*  '"';
+ comentario_simples = '#' nao_rc_nl* eol;
+ comentario_multilinha = '{' nao_eh_fecha_chave* '}';
+ numero = digito+ | digito+ ',' digito+;
+ identificador = letra (letra | '_' | digito)*;
+ vazio = (espaco | rc | nl)+;
+
+
+Ignored Tokens
+ vazio;
+
+Productions
+
+    programa
+         {-> P.programa} =
+
+
+     {aprograma4} P.dec_variavel* P.dec_funcao*
+         {-> New programa ([ dec_variavel.dec_variavel  ], [ dec_funcao.dec_funcao  ] )  }
+     ;
+
+    dec_variavel
+         {-> P.dec_variavel  } =
+
+     tipo lista_nomes ponto
+         {-> New dec_variavel (tipo , lista_nomes )  }
+     ;
+
+    lista_nomes
+         {-> P.lista_nomes  } =
+
+
+     {alistanomes2} identificador P.virgula_id*
+         {-> New lista_nomes (identificador , [ virgula_id.virgula_id  ] )  }
+     ;
+
+    virgula_id
+         {-> P.virgula_id  } =
+
+     virgula identificador
+         {-> New virgula_id (identificador)  }
+     ;
+
+    tipo
+         {-> P.tipo  } =
+
+     tipo_base
+         {-> New tipo (tipo_base  )  }   |
+
+     {vetor_tipo_base} vetor tipo_base P.dec_vetor+
+         {-> New tipo.vetor_tipo_base (tipo_base , [ dec_vetor.dec_vetor  ] )  }
+     ;
+
+    dec_vetor
+         {-> P.dec_vetor  } =
+
+     colchete_esquerdo exp colchete_direito
+         {-> New dec_vetor ( exp )  }
+     ;
+
+    tipo_base
+         {-> P.tipo_base  } =
+
+     tipo_numero
+         {-> New tipo_base (tipo_numero  )  }   |
+
+     {tb_caractere} tipo_caractere
+         {-> New tipo_base.tb_caractere (tipo_caractere  )  }   |
+
+     {tb_booleano} tipo_booleano
+         {-> New tipo_base.tb_booleano (tipo_booleano  )  }
+     ;
+
+    dec_funcao
+         {-> P.dec_funcao  } =
+
+     {adecfuncao11} [tipo_retornotipo1]: tipo [elem2]: identificador [elem3]: parentese_esquerdo [elem4]: parametros [elem5]: parentese_direito [elem6]: bloco
+         {-> New dec_funcao (Null , New tipo_retorno (tipo_retornotipo1  ), elem2  , elem4  , elem6  )  }   |
+
+     {adecfuncao1tr_vazio1} [tipo_retornotr_vaziolex_vazio1]: lex_vazio [elem2]: identificador [elem3]: parentese_esquerdo [elem4]: parametros [elem5]: parentese_direito [elem6]: bloco
+         {-> New dec_funcao (Null , New tipo_retorno.tr_vazio (tipo_retornotr_vaziolex_vazio1  ), elem2 , elem4 ,  elem6  )  }   |
+
+     {adecfuncao21} [elem1]: seta [tipo_retornotipo2]: tipo [elem3]: identificador [elem4]: parentese_esquerdo [elem5]: parametros [elem6]: parentese_direito [elem7]: bloco
+         {-> New dec_funcao (elem1 , New tipo_retorno (tipo_retornotipo2  ), elem3 , elem5 , elem7  )  }   |
+
+     {adecfuncao2tr_vazio1} [elem1]: seta [tipo_retornotr_vaziolex_vazio2]: lex_vazio [elem3]: identificador [elem4]: parentese_esquerdo [elem5]: parametros [elem6]: parentese_direito [elem7]: bloco
+         {-> New dec_funcao (elem1 , New tipo_retorno.tr_vazio (tipo_retornotr_vaziolex_vazio2  ), elem3 , elem5 , elem7  )  }
+     ;
+
+    parametros
+         {-> P.parametros  } =
+
+
+         {-> New parametros ( )  }   |
+
+     {parametro} parametro
+         {-> New parametros.parametro (parametro  )  }
+     ;
+
+    var
+         {-> P.var  } =
+
+     identificador
+         {-> New var (identificador  )  }   |
+
+     {var_colchetes} identificador P.colchetes+
+         {-> New var.var_colchetes (identificador , [ colchetes.colchetes  ] )  }
+     ;
+
+    colchetes
+         {-> P.colchetes  } =
+
+     colchete_esquerdo exp colchete_direito
+         {-> New colchetes ( exp )  }
+     ;
+
+    operacaobool
+         {-> P.operacaobool  } =
+
+     e
+         {-> New operacaobool (e  )  }   |
+
+     {ou} ou
+         {-> New operacaobool.ou (ou  )  }   |
+
+     {nao} nao
+         {-> New operacaobool.nao (nao  )  }
+     ;
+
+    exp
+         {-> P.exp  } =
+
+     exp operacaobool expr
+         {-> New exp (exp , expr  )  }   |
+
+     {expr} expr
+         {-> New exp.expr (expr  )  }
+     ;
+
+    expr
+         {-> P.expr  } =
+
+     expr comparar fator
+         {-> New expr (expr, fator  )  }   |
+
+     {fator} fator
+         {-> New expr.fator (fator  )  }
+     ;
+
+    comparar
+         {-> P.comparar  } =
+
+     maior
+         {-> New comparar (maior  )  }   |
+
+     {igual} igual
+         {-> New comparar.igual (igual  )  }   |
+
+     {menor} menor
+         {-> New comparar.menor (menor  )  }   |
+
+     {maior_igual} maior_igual
+         {-> New comparar.maior_igual (maior_igual  )  }   |
+
+     {menor_igual} menor_igual
+         {-> New comparar.menor_igual (menor_igual  )  }
+     ;
+
+    fator
+         {-> P.fator  } =
+
+     fator operacaoss fator_operacao
+         {-> New fator (fator , fator_operacao  )  }   |
+
+     {fator_operacao} fator_operacao
+         {-> New fator.fator_operacao (fator_operacao  )  }
+     ;
+
+    operacaoss
+         {-> P.operacaoss  } =
+
+     mais
+         {-> New operacaoss (mais  )  }   |
+
+     {menos} menos
+         {-> New operacaoss.menos (menos  )  }
+     ;
+
+    fator_operacao
+         {-> P.fator_operacao  } =
+
+     fator_operacao operacaomd fator_parenteses
+         {-> New fator_operacao (fator_operacao , fator_parenteses  )  }   |
+
+     {fator_parenteses} fator_parenteses
+         {-> New fator_operacao.fator_parenteses (fator_parenteses  )  }
+     ;
+
+    fator_parenteses
+         {-> P.fator_parenteses  } =
+
+     parentese_esquerdo exp parentese_direito
+         {-> New fator_parenteses ( exp )  }   |
+
+     {fator_tipo} fator_tipo
+         {-> New fator_parenteses.fator_tipo (fator_tipo  )  }
+     ;
+
+    fator_tipo
+         {-> P.fator_tipo  } =
+
+     numero
+         {-> New fator_tipo (numero  )  }   |
+
+     {identificador} identificador
+         {-> New fator_tipo.identificador (identificador  )  }   |
+
+     {cadeia} cadeia
+         {-> New fator_tipo.cadeia (cadeia  )  }   |
+
+     {verdadeiro} verdadeiro
+         {-> New fator_tipo.verdadeiro (verdadeiro  )  }   |
+
+     {falso} falso
+         {-> New fator_tipo.falso (falso  )  }
+     ;
+
+    operacaomd
+         {-> P.operacaomd  } =
+
+     vezes
+         {-> New operacaomd (vezes  )  }   |
+
+     {divide} divide
+         {-> New operacaomd.divide (divide  )  }
+     ;
+
+    chamada
+         {-> P.chamada  } =
+
+     identificador parentese_esquerdo lista_exp parentese_direito
+         {-> New chamada (identificador , lista_exp )  }
+     ;
+
+    lista_exp
+         {-> P.lista_exp  } =
+
+
+         {-> New lista_exp ( )  }   |
+
+
+     {alistaexplistaexp2} exp P.pipeexp*
+         {-> New lista_exp.lista_exp (exp , [ pipeexp.pipeexp  ] )  }
+     ;
+
+    pipeexp
+         {-> P.pipeexp  } =
+
+     pipe exp
+         {-> New pipeexp ( exp  )  }
+     ;
+
+    parametro
+         {-> P.parametro  } =
+
+     {aparametro2} tipo_base identificador P.outros_parametros*
+         {-> New parametro (tipo_base , identificador , [ outros_parametros.outros_parametros  ] )  }
+     ;
+
+    outros_parametros
+         {-> P.outros_parametros  } =
+
+     pipe tipo_base identificador
+         {-> New outros_parametros ( tipo_base , identificador  )  }
+     ;
+
+    bloco
+         {-> P.bloco  } =
+
+
+     {abloco4} inicio P.dec_variavel* P.comando* fim
+         {-> New bloco ([ dec_variavel.dec_variavel  ], [ comando.comando  ] )  }
+     ;
+
+    atrib
+         {-> P.atrib  } =
+
+     var atribuicao exp
+         {-> New atrib (var , exp  )  }
+     ;
+
+    lista_atrib
+         {-> P.lista_atrib  } =
+
+     {alistaatrib2} atrib P.virgula_atri*
+         {-> New lista_atrib (atrib , [ virgula_atri.virgula_atri  ] )  }
+     ;
+
+    virgula_atri
+         {-> P.virgula_atri  } =
+
+     virgula atrib
+         {-> New virgula_atri ( atrib  )  }
+     ;
+
+    comando
+         {-> P.comando  } =
+
+     {comando_bloco} bloco
+         {-> New comando.comando_bloco (bloco  )  }   |
+
+     {comando_atribuicao} atrib ponto
+         {-> New comando.comando_atribuicao (atrib )  }   |
+
+     {acomandosesenaocomando1} se parentese_esquerdo exp parentese_direito bloco
+         {-> New comando.comando_sesenao ( exp ,  bloco , Null  )  }   |
+
+     {acomandosesenaocomando2} se parentese_esquerdo exp parentese_direito bloco senao_pendente
+         {-> New comando.comando_sesenao ( exp ,  bloco , senao_pendente  )  }   |
+
+     {comando_enquanto} enquanto parentese_esquerdo exp parentese_direito comando
+         {-> New comando.comando_enquanto ( exp , comando  )  }   |
+
+     {comando_para} para parentese_esquerdo lista_atrib ponto_virgula exp pv_listatrib parentese_direito comando
+         {-> New comando.comando_para ( lista_atrib , exp , pv_listatrib , comando  )  }   |
+
+     {comando_paracada} para_cada parentese_esquerdo parametro2 dois_pontos identificador parentese_direito comando
+         {-> New comando.comando_paracada ( parametro2 , identificador , comando  )  }   |
+
+     {acomandoretornecomando1} retorne ponto
+         {-> New comando.comando_retorne ( Null )  }   |
+
+     {acomandoretornecomando2} retorne exp ponto
+         {-> New comando.comando_retorne ( exp )  }   |
+
+     {comando_chamada} chamada ponto
+         {-> New comando.comando_chamada (chamada )  }
+     ;
+
+    senao_pendente
+         {-> P.senao_pendente  } =
+
+     senao comando
+         {-> New senao_pendente ( comando  )  }
+     ;
+
+    parametro2
+         {-> P.parametro2  } =
+
+     tipo identificador
+         {-> New parametro2 (tipo , identificador  )  }
+     ;
+
+    pv_listatrib
+         {-> P.pv_listatrib  } =
+
+     ponto_virgula lista_atrib
+         {-> New pv_listatrib ( lista_atrib  )  }
+     ;
+
+Abstract Syntax Tree
+    programa =
+     dec_variavel* dec_funcao*
+     ;
+
+    dec_variavel =
+     tipo lista_nomes
+     ;
+
+    lista_nomes =
+     identificador virgula_id*
+     ;
+
+    virgula_id =
+    identificador
+     ;
+
+    tipo =
+     tipo_base |
+     {vetor_tipo_base} tipo_base dec_vetor+
+     ;
+
+    dec_vetor =
+      exp
+     ;
+
+    tipo_base =
+     tipo_numero |
+     {tb_caractere} tipo_caractere |
+     {tb_booleano} tipo_booleano
+     ;
+
+    dec_funcao =
+     seta? tipo_retorno identificador parametros  bloco
+     ;
+
+    tipo_retorno =
+     tipo |
+     {tr_vazio} lex_vazio
+     ;
+
+    parametros =
+     |
+     {parametro} parametro
+     ;
+
+    var =
+     identificador |
+     {var_colchetes} identificador colchetes+
+     ;
+
+    colchetes =
+      exp
+     ;
+
+    operacaobool =
+     e |
+     {ou} ou |
+     {nao} nao
+     ;
+
+    exp =
+     exp expr |
+     {expr} expr
+     ;
+
+    expr =
+     expr fator |
+     {fator} fator
+     ;
+
+    comparar =
+     maior |
+     {igual} igual |
+     {menor} menor |
+     {maior_igual} maior_igual |
+     {menor_igual} menor_igual
+     ;
+
+    fator =
+     fator fator_operacao |
+     {fator_operacao} fator_operacao
+     ;
+
+    operacaoss =
+     mais |
+     {menos} menos
+     ;
+
+    fator_operacao =
+     fator_operacao fator_parenteses |
+     {fator_parenteses} fator_parenteses
+     ;
+
+    fator_parenteses =
+      exp  |
+     {fator_tipo} fator_tipo
+     ;
+
+    fator_tipo =
+     numero |
+     {identificador} identificador |
+     {cadeia} cadeia |
+     {verdadeiro} verdadeiro |
+     {falso} falso
+     ;
+
+    operacaomd =
+     vezes |
+     {divide} divide
+     ;
+
+    chamada =
+     identificador lista_exp
+     ;
+
+    lista_exp =
+     |
+     {lista_exp} exp pipeexp*
+     ;
+
+    pipeexp =
+    exp
+     ;
+
+    parametro =
+     tipo_base identificador outros_parametros*
+     ;
+
+    outros_parametros =
+      tipo_base identificador
+     ;
+
+    bloco =
+     dec_variavel* comando*
+     ;
+
+    atrib =
+     [var]:var [exp]:exp
+     ;
+
+    lista_atrib =
+     atrib virgula_atri*
+     ;
+
+    virgula_atri =
+      atrib
+     ;
+
+    comando =
+     {comando_bloco} bloco |
+     {comando_atribuicao} atrib |
+     {comando_sesenao} exp bloco senao_pendente? |
+     {comando_enquanto}   exp  comando |
+     {comando_para}  lista_atrib  exp pv_listatrib  comando |
+     {comando_paracada}  parametro2  identificador  comando |
+     {comando_retorne}  exp?  |
+     {comando_chamada} chamada
+     ;
+
+    senao_pendente =
+      comando
+     ;
+
+    parametro2 =
+     tipo identificador
+     ;
+
+    pv_listatrib =
+      lista_atrib
+     ;

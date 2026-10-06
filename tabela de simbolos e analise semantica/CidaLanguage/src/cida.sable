@@ -1,0 +1,185 @@
+Package cida;
+
+Helpers
+ char = [0 .. 0xffff ];
+ lowletter = ['a' .. 'z'];
+ upletter = ['A' .. 'Z'];
+ letter = (lowletter | upletter);
+ digit = ['0' .. '9'];
+ gr = '>';
+ ls = '<';
+ eq = '=';
+ quote = 39;
+ space = ' ';
+ rc = 13;
+ nl = 10;
+ tab = 9;
+ scp = 'a'|'b'|'f'|'n'|'r'|'t'|'v'|quote|'"'|'\'|'?';
+ escape = '\' scp;
+ text = char*;
+ escquote = 92 34;
+ str = ([char - 34] | escquote )*;
+ line = [char - [nl + rc]]*;
+ eol = (nl | rc | nl rc);
+ not_minus = [char - '-'];
+ not_minus_brack = [not_minus - '}'];
+ 
+
+Tokens
+ code = 'code';
+ start = 'start';
+ finish = 'finish';
+ dot = '.';
+ comma = ',';
+ alter = 'alterable';
+ unalter = 'unalterable';
+ set = '<<';
+ typenum = 'number';
+ typeansw = 'answer';
+ typesym = 'symbol';
+ vector = 'vector';
+ brackl = '[';
+ brackr = ']';
+ capt = 'capture';
+ show = 'show';
+ parl = '(';
+ parr = ')';
+ cond1 = 'in';
+ cond2 = 'case';
+ cond3 = 'that';
+ do = 'do';
+ else = 'otherwise';
+ while1 = 'as';
+ while2 = 'long';
+ consid = 'considering';
+ from = 'from';
+ to = 'to';
+ by = 'by';
+ symbol = quote char quote | quote escape quote;
+ number = digit+ | digit+ '.' digit+;
+ answer = 'yes' |'no';
+ string = '"' str '"';
+ minus = '-';
+ add = '+';
+ mult = '*';
+ div = '/';
+ mod = '%';
+ equals = eq eq;
+ neq = '!' eq;
+ greater = gr;
+ less = ls;
+ geq = gr eq;
+ leq = ls eq;
+ not = 'not';
+ and = 'and';
+ or = 'or';
+ xor = 'xor';
+ id = (letter)+;
+ comment = '--' line eol | '{-' not_minus* '-'+ (not_minus_brack not_minus* '-'+)* '}';
+ empty = (space | rc | nl | tab)+;
+
+Ignored Tokens
+ empty, comment;
+
+Productions
+
+ program =
+    code id block;
+    
+ block =
+    start decls commands finish;
+    
+ declaration =
+    {alterable} alter base_type id dot |
+    {alterable_vec} alter type id dot |
+ 	{unalterable} unalter base_type id dot |
+ 	{unalterable_ini} unalter base_type id set exp dot;
+ 
+ type =
+    base_type vector arr multarr;
+
+ base_type = 
+    {tnum} typenum |
+    {tansw} typeansw |
+    {tsym} typesym;
+    
+ local =
+    {local_id} id |
+    {vector_loc} local brackl exp brackr;
+    
+ command =     
+    {set} local set exp dot |
+    {capture} capt parl locals local parr dot |
+    {show} show parl exps exp parr dot |
+    {single_cond} condition command|
+    {as_long_as} while1 while2 [as2]:while1 parl exp parr do command |
+    {considering} consid local from [argfrom]:exp to [argto]:exp by [argby]:exp do command |
+    {command_block} block; 
+
+ exp = 
+    logic_or;
+    
+ logic_or =
+    {or} logic_or or logic_xor |
+    {logic_xor} logic_xor;    
+    
+ logic_xor =
+    {xor} logic_xor xor logic_and |
+    {logic_and} logic_and;   
+    
+ logic_and =
+    {and} logic_and and eq_exp |
+    {eq_exp} eq_exp;  
+    
+ eq_exp =
+    {equal} eq_exp equals rel_exp |
+    {not_equal} eq_exp neq rel_exp |
+    {rel_exp} rel_exp;
+    
+ rel_exp =
+    {less} rel_exp less add_exp |
+    {greater} rel_exp greater add_exp |
+    {less_eq} rel_exp leq add_exp |
+    {great_eq} rel_exp geq add_exp |
+    {add_exp} add_exp;
+    
+ add_exp =
+    {sum} add_exp add mult_exp|
+    {subtraction} add_exp minus mult_exp |
+    {mult_exp} mult_exp;
+    
+ mult_exp = 
+    {multiplication} mult_exp mult not_exp |
+    {division} mult_exp div not_exp |
+    {module} mult_exp mod not_exp |
+    {not_exp} not_exp;
+    
+ not_exp =
+    {minus} minus primitive_exp |
+    {not} not primitive_exp|
+    {prim_exp} primitive_exp;
+    
+ primitive_exp =
+    {parenthesis} parl exp parr |
+    {primitive} primitive;
+    
+ primitive = 
+    {symbol} symbol |
+    {number} number |
+    {answer} answer |
+    {string} string |
+    {local} local;
+    
+ arr = brackl exp brackr;
+ decls = [decls]: declaration*;
+ multarr = [multarrs]:arr*;
+ exps = [expressions]: exps_def*;
+ commands = [comms]: command*;
+ locals = [locs]: locals_def*;
+ 
+ locals_def =
+    local comma;
+ exps_def =
+    exp comma;
+ condition = cond1 cond2 cond3 parl exp parr do;
+    
